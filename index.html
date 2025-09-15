@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Password Gate Debug</title>
+</head>
+<body>
+<h1>Password Debug Page</h1>
+<div id="debug-output"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const passwordHash = "577f5c091150c984348db97128e7eeb9f7ad98d0fb9681fb1deca8a15c5d8d79";
+
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function checkPassword() {
+    const debugDiv = document.getElementById("debug-output");
+    const userInput = prompt("Enter password for debugging:");
+
+    if (!userInput) {
+      debugDiv.innerHTML = "<p style='color:red;'>Access Denied: No password entered</p>";
+      return;
+    }
+
+    const normalizedInput = userInput.trim();
+    let inputHash = "";
+    try {
+      inputHash = await sha256(normalizedInput);
+    } catch (err) {
+      debugDiv.innerHTML = `<p style='color:red;'>Error computing hash: ${err}</p>`;
+      return;
+    }
+
+    // Display typed characters and hash
+    debugDiv.innerHTML = `
+      <p><strong>Typed characters:</strong> ${normalizedInput}</p>
+      <p><strong>SHA-256 hash:</strong> ${inputHash}</p>
+    `;
+
+    if (inputHash === passwordHash) {
+      debugDiv.innerHTML += `<p style='color:green;'><strong>Password correct!</strong> Redirecting...</p>`;
+      setTimeout(() => { window.location.href = "secret.html"; }, 1000);
+    } else {
+      debugDiv.innerHTML += `<p style='color:red;'><strong>Access Denied: Wrong password</strong></p>`;
+    }
+  }
+
+  checkPassword();
+});
+</script>
+</body>
+</html>
