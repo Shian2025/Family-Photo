@@ -3,10 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <title>Password Gate Debug</title>
+<style>
+  body {
+    background-color: #f9f9f9;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+  h1 {
+    color: #333;
+  }
+  #password-container {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 300px;
+    text-align: center;
+  }
+  input[type="password"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: #e0f0ff; /* light blue */
+  }
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #45a049;
+  }
+  #debug-output {
+    margin-top: 15px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+</style>
 </head>
 <body>
-<h1>Password Debug Page</h1>
-<div id="debug-output"></div>
+<h1>Enter Password v01</h1>
+
+<div id="password-container">
+  <input type="password" id="password-input" placeholder="Enter password">
+  <button id="submit-btn">Submit</button>
+  <div id="debug-output"></div>
+</div>
 
 <!-- Load hash first -->
 <script src="password.js"></script>
@@ -23,50 +78,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function checkPassword() {
     const debugDiv = document.getElementById("debug-output");
-    const userInput = prompt("Enter password for debugging:");
+    const inputField = document.getElementById("password-input");
+    const submitBtn = document.getElementById("submit-btn");
 
-    if (!userInput) {
+    const normalizedInput = inputField.value.trim();
+
+    submitBtn.disabled = true; // prevent double-click
+    debugDiv.innerHTML = ""; // clear old message
+
+    if (!normalizedInput) {
       debugDiv.innerHTML = "<p style='color:red;'>Access Denied: No password entered</p>";
-      waitForEnter(checkPassword);
+      submitBtn.disabled = false;
       return;
     }
 
-    const normalizedInput = userInput.trim();
+    if (typeof passwordHash === "undefined") {
+      debugDiv.innerHTML = "<p style='color:red;'>Password hash not loaded. Check password.js</p>";
+      submitBtn.disabled = false;
+      return;
+    }
+
     let inputHash = "";
     try {
       inputHash = await sha256(normalizedInput);
     } catch (err) {
       debugDiv.innerHTML = `<p style='color:red;'>Error computing hash: ${err}</p>`;
-      waitForEnter(checkPassword);
+      submitBtn.disabled = false;
       return;
     }
 
-    debugDiv.innerHTML = `
-      <p><strong>Typed characters:</strong> ${normalizedInput}</p>
-      <!-- <p><strong>SHA-256 hash:</strong> ${inputHash}</p> -->
-    `;
-
     if (inputHash === passwordHash) {
-      debugDiv.innerHTML += `<p style='color:green;'><strong>Password correct!</strong> Redirecting...</p>`;
-      setTimeout(() => { window.location.href = "secret.html"; }, 1000);
+      debugDiv.innerHTML = `<p style='color:green;'><strong>Password correct! Redirecting...</strong></p>`;
+      setTimeout(() => window.location.href = "secret.html", 1000);
     } else {
-      debugDiv.innerHTML += `<p style='color:red;'><strong>Access Denied: Wrong password</strong></p>`;
-      debugDiv.innerHTML += `<p>Press Enter to try again...</p>`;
-      waitForEnter(checkPassword);
+      debugDiv.innerHTML = `<p style='color:red;'><strong>Access Denied: Wrong password</strong></p>`;
+      setTimeout(() => {
+        window.location.href = "index.html"; // go back or reload
+      }, 1000);
     }
+
+    inputField.value = ""; // clear input
+    submitBtn.disabled = false;
+    inputField.focus();
   }
 
-  function waitForEnter(callback) {
-    function onKey(event) {
-      if (event.key === "Enter") {
-        document.removeEventListener("keydown", onKey);
-        callback();
-      }
-    }
-    document.addEventListener("keydown", onKey);
-  }
-
-  checkPassword();
+  document.getElementById("submit-btn").addEventListener("click", checkPassword);
+  document.getElementById("password-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") checkPassword();
+  });
 });
 </script>
 </body>
